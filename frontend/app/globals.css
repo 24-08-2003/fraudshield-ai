@@ -1,0 +1,252 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base Reset ──────────────────────────────────────────────────────────────*/
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg-primary: #050813;
+  --bg-secondary: #080e1f;
+  --bg-card: rgba(255, 255, 255, 0.03);
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --cyan-neon: #00F5FF;
+  --purple-neon: #7C3AED;
+  --fraud-red: #FF2D55;
+  --safe-green: #00D68F;
+  --warning: #FFB800;
+
+  --scrollbar-width: 6px;
+  --scrollbar-color: rgba(0, 245, 255, 0.2);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  background-color: var(--bg-primary);
+  color: rgba(255, 255, 255, 0.9);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Custom Scrollbar ────────────────────────────────────────────────────────*/
+::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
+}
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-color);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 245, 255, 0.4);
+}
+
+/* ── Glassmorphism Components ────────────────────────────────────────────────*/
+@layer components {
+  .glass-card {
+    @apply backdrop-blur-xl border rounded-2xl;
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(8, 14, 31, 0.7);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300;
+  }
+  .glass-card-hover:hover {
+    background: rgba(8, 14, 31, 0.85);
+    border-color: rgba(0, 245, 255, 0.15);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0,245,255,0.1), inset 0 1px 0 rgba(255,255,255,0.08);
+    transform: translateY(-1px);
+  }
+
+  .glass-btn {
+    @apply px-4 py-2 rounded-xl border backdrop-blur-sm font-medium text-sm
+           transition-all duration-200 cursor-pointer;
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  .glass-btn:hover {
+    background: rgba(0, 245, 255, 0.1);
+    border-color: rgba(0, 245, 255, 0.3);
+    color: #00F5FF;
+    box-shadow: 0 0 20px rgba(0, 245, 255, 0.2);
+  }
+
+  .btn-primary {
+    @apply px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200
+           text-space-900 cursor-pointer;
+    background: linear-gradient(135deg, #00F5FF 0%, #06b6d4 100%);
+    box-shadow: 0 0 20px rgba(0,245,255,0.3);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 0 30px rgba(0,245,255,0.5);
+    transform: translateY(-1px);
+  }
+
+  .btn-danger {
+    @apply px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 cursor-pointer;
+    background: linear-gradient(135deg, #FF2D55 0%, #cc2244 100%);
+    box-shadow: 0 0 20px rgba(255,45,85,0.3);
+    color: white;
+  }
+
+  /* Status badges */
+  .badge-fraud {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold;
+    background: rgba(255, 45, 85, 0.15);
+    color: #FF2D55;
+    border: 1px solid rgba(255, 45, 85, 0.3);
+  }
+  .badge-safe {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold;
+    background: rgba(0, 214, 143, 0.15);
+    color: #00D68F;
+    border: 1px solid rgba(0, 214, 143, 0.3);
+  }
+  .badge-warning {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold;
+    background: rgba(255, 184, 0, 0.15);
+    color: #FFB800;
+    border: 1px solid rgba(255, 184, 0, 0.3);
+  }
+
+  /* Cyber grid background */
+  .bg-cyber {
+    background-color: var(--bg-primary);
+    background-image:
+      linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* Neon text effects */
+  .text-neon-cyan {
+    color: #00F5FF;
+    text-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
+  }
+  .text-neon-purple {
+    color: #a855f7;
+    text-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+  }
+  .text-neon-fraud {
+    color: #FF2D55;
+    text-shadow: 0 0 20px rgba(255, 45, 85, 0.5);
+  }
+  .text-neon-safe {
+    color: #00D68F;
+    text-shadow: 0 0 20px rgba(0, 214, 143, 0.5);
+  }
+
+  /* Metric card variants */
+  .metric-card {
+    @apply glass-card p-5 flex flex-col gap-3;
+  }
+
+  /* Glowing border */
+  .border-glow-cyan {
+    border-color: rgba(0, 245, 255, 0.4);
+    box-shadow: 0 0 15px rgba(0,245,255,0.15), inset 0 0 15px rgba(0,245,255,0.05);
+  }
+  .border-glow-fraud {
+    border-color: rgba(255, 45, 85, 0.4);
+    box-shadow: 0 0 15px rgba(255,45,85,0.15), inset 0 0 15px rgba(255,45,85,0.05);
+  }
+
+  /* Sidebar nav item */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+           transition-all duration-200 cursor-pointer text-white/60;
+  }
+  .nav-item:hover {
+    background: rgba(0, 245, 255, 0.08);
+    color: rgba(255,255,255,0.9);
+  }
+  .nav-item.active {
+    background: rgba(0, 245, 255, 0.12);
+    color: #00F5FF;
+    border: 1px solid rgba(0, 245, 255, 0.2);
+  }
+
+  /* Data table */
+  .data-table th {
+    @apply text-xs font-semibold uppercase tracking-wider text-white/40 pb-3 text-left;
+  }
+  .data-table td {
+    @apply py-3 text-sm border-t border-white/5;
+  }
+
+  /* Animated gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, #00F5FF 0%, #7C3AED 50%, #FF2D55 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    @apply animate-pulse rounded-lg;
+    background: rgba(255,255,255,0.06);
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    @apply h-1.5 rounded-full overflow-hidden;
+    background: rgba(255,255,255,0.06);
+  }
+  .progress-fill {
+    @apply h-full rounded-full transition-all duration-700;
+    background: linear-gradient(90deg, #00F5FF, #7C3AED);
+  }
+
+  /* Stat indicator dot */
+  .dot-live {
+    @apply w-2 h-2 rounded-full;
+    background: #00D68F;
+    box-shadow: 0 0 8px rgba(0, 214, 143, 0.8);
+    animation: pulse 2s infinite;
+  }
+}
+
+/* ── Utility Overrides ───────────────────────────────────────────────────────*/
+@layer utilities {
+  .text-xs-mono { @apply text-xs font-mono; }
+  .border-glass { border-color: rgba(255, 255, 255, 0.08); }
+  .bg-glass { background: rgba(255, 255, 255, 0.03); }
+  .bg-glass-hover:hover { background: rgba(255, 255, 255, 0.06); }
+  .glow-cyan { box-shadow: 0 0 20px rgba(0, 245, 255, 0.3); }
+  .glow-purple { box-shadow: 0 0 20px rgba(124, 58, 237, 0.3); }
+  .glow-fraud { box-shadow: 0 0 20px rgba(255, 45, 85, 0.4); }
+  .glow-safe { box-shadow: 0 0 20px rgba(0, 214, 143, 0.3); }
+}
+
+/* ── Chart overrides for dark theme ────────────────────────────────────────*/
+.recharts-cartesian-axis-tick-value {
+  fill: rgba(255, 255, 255, 0.4) !important;
+  font-size: 11px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+.recharts-cartesian-grid line {
+  stroke: rgba(255, 255, 255, 0.05) !important;
+}
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: rgba(8, 14, 31, 0.95) !important;
+  border: 1px solid rgba(0, 245, 255, 0.2) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
+}

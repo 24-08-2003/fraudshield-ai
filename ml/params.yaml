@@ -1,0 +1,60 @@
+data:
+  n_samples: 100000
+  fraud_ratio: 0.02
+  test_size: 0.2
+  val_size: 0.1
+  random_state: 42
+
+features:
+  numeric_cols:
+    - amount
+    - hour_of_day
+    - day_of_week
+    - transaction_count_1h
+    - transaction_count_24h
+    - amount_mean_1h
+    - amount_std_1h
+    - merchant_risk_score
+    - distance_from_home
+    - velocity_score
+  categorical_cols:
+    - merchant_category
+    - card_type
+    - entry_mode
+
+preprocessing:
+  smote: true
+  smote_ratio: 0.3
+  scale_features: true
+  scaler: standard
+
+xgboost:
+  n_estimators: 500
+  max_depth: 6
+  learning_rate: 0.05
+  subsample: 0.8
+  colsample_bytree: 0.8
+  scale_pos_weight: 50
+  eval_metric: aucpr
+  early_stopping_rounds: 50
+  random_state: 42
+
+lightgbm:
+  n_estimators: 500
+  max_depth: 6
+  learning_rate: 0.05
+  subsample: 0.8
+  colsample_bytree: 0.8
+  class_weight: balanced
+  random_state: 42
+
+evaluation:
+  threshold: 0.5
+  primary_metric: f1
+  min_f1_score: 0.85
+  min_auc_pr: 0.80
+
+mlflow:
+  experiment_name: fraud_detection
+  model_name: fraudshield_classifier
+  tracking_uri: http://mlflow:5000

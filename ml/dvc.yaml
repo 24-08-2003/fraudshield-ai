@@ -1,0 +1,83 @@
+stages:
+  ingest:
+    cmd: python src/data_ingestion.py
+    deps:
+      - src/data_ingestion.py
+    params:
+      - data.n_samples
+      - data.fraud_ratio
+      - data.random_state
+    outs:
+      - data/raw/transactions.csv
+
+  validate:
+    cmd: python src/validate_data.py
+    deps:
+      - src/validate_data.py
+      - data/raw/transactions.csv
+      - great_expectations/expectations/fraud_data_suite.json
+    outs:
+      - data/raw/validation_report.json
+
+  preprocess:
+    cmd: python src/preprocessing.py
+    deps:
+      - src/preprocessing.py
+      - src/feature_engineering.py
+      - data/raw/transactions.csv
+    params:
+      - features
+      - preprocessing
+    outs:
+      - data/processed/X_train.pkl
+      - data/processed/X_val.pkl
+      - data/processed/X_test.pkl
+      - data/processed/y_train.pkl
+      - data/processed/y_val.pkl
+      - data/processed/y_test.pkl
+      - data/processed/feature_names.json
+      - data/processed/scaler.pkl
+
+  train:
+    cmd: python src/train.py
+    deps:
+      - src/train.py
+      - data/processed/X_train.pkl
+      - data/processed/y_train.pkl
+      - data/processed/X_val.pkl
+      - data/processed/y_val.pkl
+    params:
+      - xgboost
+      - lightgbm
+      - mlflow
+    outs:
+      - data/processed/models/xgboost_model.pkl
+      - data/processed/models/lightgbm_model.pkl
+
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+      - src/evaluate.py
+      - data/processed/X_test.pkl
+      - data/processed/y_test.pkl
+      - data/processed/models/xgboost_model.pkl
+      - data/processed/models/lightgbm_model.pkl
+    params:
+      - evaluation
+    metrics:
+      - data/processed/metrics.json:
+          cache: false
+    plots:
+      - data/processed/plots/confusion_matrix.json
+      - data/processed/plots/roc_curve.json
+      - data/processed/plots/pr_curve.json
+
+  register:
+    cmd: python src/register_model.py
+    deps:
+      - src/register_model.py
+      - data/processed/metrics.json
+      - data/processed/models/xgboost_model.pkl
+    params:
+      - evaluation.min_f1_score
+      - mlflow.model_name

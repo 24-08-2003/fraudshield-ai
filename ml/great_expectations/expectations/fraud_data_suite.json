@@ -1,0 +1,128 @@
+{
+  "expectation_suite_name": "fraud_data_suite",
+  "expectations": [
+    {
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "kwargs": { "min_value": 1000, "max_value": 10000000 },
+      "meta": { "notes": "Dataset must have at least 1000 rows" }
+    },
+    {
+      "expectation_type": "expect_table_columns_to_match_ordered_list",
+      "kwargs": {
+        "column_list": [
+          "transaction_id", "customer_id", "timestamp", "amount",
+          "merchant_category", "card_type", "entry_mode",
+          "hour_of_day", "day_of_week", "transaction_count_1h",
+          "transaction_count_24h", "amount_mean_1h", "amount_std_1h",
+          "merchant_risk_score", "distance_from_home", "velocity_score", "is_fraud"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "transaction_id" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "amount" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "is_fraud" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_unique",
+      "kwargs": { "column": "transaction_id" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "amount", "min_value": 0.01, "max_value": 100000.0 },
+      "meta": { "notes": "Transaction amounts must be positive and reasonable" }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "hour_of_day", "min_value": 0, "max_value": 23 },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "day_of_week", "min_value": 0, "max_value": 6 },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "merchant_risk_score", "min_value": 0.0, "max_value": 1.0 },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "velocity_score", "min_value": 0.0, "max_value": 1.0 },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "is_fraud",
+        "value_set": [0, 1]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "merchant_category",
+        "value_set": [
+          "grocery", "restaurant", "gas_station", "online_retail",
+          "travel", "entertainment", "pharmacy", "electronics",
+          "clothing", "healthcare", "utilities", "atm_withdrawal"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "card_type",
+        "value_set": ["visa", "mastercard", "amex", "discover"]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "entry_mode",
+        "value_set": ["chip", "swipe", "contactless", "online", "manual"]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_mean_to_be_between",
+      "kwargs": { "column": "amount", "min_value": 1.0, "max_value": 2000.0 },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_proportion_of_unique_values_to_be_between",
+      "kwargs": { "column": "customer_id", "min_value": 0.001, "max_value": 1.0 },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "transaction_count_1h", "min_value": 0, "max_value": 100 },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "distance_from_home", "min_value": 0.0, "max_value": 20000.0 },
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "great_expectations_version": "0.18.0",
+    "notes": "FraudShield AI — Fraud transaction data validation suite"
+  }
+}
