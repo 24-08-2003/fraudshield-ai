@@ -1,7 +1,7 @@
-"""
-FraudShield AI — FastAPI Application Entry Point
-"""
+"""FraudShield AI — FastAPI Application Entry Point."""
+
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -9,9 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
+from app.api.v1 import analytics, health, ingest, models, predict, ws
 from app.core.config import settings
-from app.core.database import engine, Base
-from app.api.v1 import predict, ingest, models, analytics, health, ws
+from app.core.database import Base, engine
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,20 +19,44 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# FIX 1: flag pour désactiver le chargement du modèle en CI/tests
+#         (le modèle MLflow n'existe pas dans l'environnement CI)
+_SKIP_MODEL_LOAD = os.getenv("SKIP_MODEL_LOAD", "false").lower() == "true"
+_TESTING = os.getenv("TESTING", "false").lower() == "true"
+
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI):  # noqa: D401
     """Startup and shutdown lifecycle."""
     logger.info("🚀 FraudShield AI Backend starting up...")
-    # Create database tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    # Load ML model
-    from app.ml.predictor import FraudPredictor
-    app.state.predictor = FraudPredictor()
-    await app.state.predictor.load_model()
-    logger.info("✅ ML model loaded successfully")
+
+    # FIX 2: création des tables DB uniquement si non en mode test pur
+    #         (en test, les fixtures pytest gèrent le schéma)
+    if not _TESTING:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("✅ Database tables verified")
+
+    # FIX 3: chargement conditionnel du modèle ML
+    if _SKIP_MODEL_LOAD or _TESTING:
+        logger.warning(
+            "⚠️  Model loading SKIPPED (SKIP_MODEL_LOAD=%s, TESTING=%s). "
+            "Prediction endpoints will return 503.",
+            _SKIP_MODEL_LOAD,
+            _TESTING,
+        )
+        app.state.predictor = None
+    else:
+        # Import local pour éviter les imports circulaires et l'overhead en tests
+        from app.ml.predictor import FraudPredictor  # noqa: PLC0415
+
+        predictor = FraudPredictor()
+        await predictor.load_model()
+        app.state.predictor = predictor
+        logger.info("✅ ML model loaded successfully")
+
     yield
+
     logger.info("🛑 Shutting down FraudShield AI Backend...")
     await engine.dispose()
 
@@ -73,7 +97,8 @@ app.include_router(ws.router, prefix="/ws", tags=["WebSocket"])
 
 
 @app.get("/", tags=["Root"])
-async def root():
+async def root() -> dict:
+    """Return service metadata."""
     return {
         "service": "FraudShield AI",
         "version": "1.0.0",

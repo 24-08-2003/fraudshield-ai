@@ -10,12 +10,20 @@ env:
   IMAGE_PREFIX: ${{ github.repository_owner }}/fraudshield
 
 jobs:
+  # FIX 1: re-run CI avant tout déploiement (garantit qu'un tag ne bypass pas les tests)
+  run-ci:
+    name: Re-run CI checks on tag
+    uses: ./.github/workflows/ci.yml
+
   build-and-push:
     name: Build & Push Docker Images
     runs-on: ubuntu-latest
+    needs: run-ci
     permissions:
       contents: read
       packages: write
+    outputs:
+      tag: ${{ steps.meta.outputs.TAG }}
 
     steps:
       - uses: actions/checkout@v4
@@ -30,8 +38,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract tag
+      # FIX 2: extraction du tag plus robuste via docker/metadata-action
+      - name: Extract Docker metadata
         id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+
+      - name: Extract plain tag for SSH script
+        id: plain
         run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
       - name: Build & push backend
@@ -40,10 +61,12 @@ jobs:
           context: ./backend
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:${{ steps.meta.outputs.TAG }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:${{ steps.plain.outputs.TAG }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # FIX 3: injecter le tag dans l'image comme label
+          labels: ${{ steps.meta.outputs.labels }}
 
       - name: Build & push frontend
         uses: docker/build-push-action@v6
@@ -51,50 +74,93 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:${{ steps.meta.outputs.TAG }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:${{ steps.plain.outputs.TAG }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          labels: ${{ steps.meta.outputs.labels }}
 
   deploy:
     name: Deploy to Production
     runs-on: ubuntu-latest
     needs: build-and-push
-    environment: production
+    environment: production   # requiert approbation manuelle si configuré
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
+      # FIX 4: sauvegarder la version actuelle AVANT de déployer pour permettre le rollback
+      - name: Save current version for rollback
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USER }}
           key: ${{ secrets.PROD_SSH_KEY }}
           script: |
             cd /opt/fraudshield
-            git pull origin main
-            docker compose -f infrastructure/docker-compose.yml pull
-            docker compose -f infrastructure/docker-compose.yml up -d --no-build
-            docker system prune -f
+            # Capture l'image backend actuellement en production
+            docker inspect fraudshield-backend \
+              --format='{{index .Config.Image}}' \
+              > /tmp/fraudshield_rollback_image.txt 2>/dev/null || \
+              echo "no-previous-image" > /tmp/fraudshield_rollback_image.txt
+            echo "📌 Rollback target saved: $(cat /tmp/fraudshield_rollback_image.txt)"
 
-      - name: Health check
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/fraudshield
+            git fetch --tags
+            git checkout ${{ github.ref_name }}
+            docker compose -f infrastructure/docker-compose.yml pull
+            docker compose -f infrastructure/docker-compose.yml up -d --no-build --remove-orphans
+            docker system prune -f --filter "until=24h"
+
+      # FIX 5: health check avec retry (évite l'échec sur démarrage lent)
+      - name: Health check with retry
         run: |
-          sleep 30
-          curl -f https://${{ secrets.PROD_HOST }}/health || exit 1
+          echo "⏳ Waiting for service to be ready..."
+          for i in $(seq 1 10); do
+            if curl -sf --max-time 10 https://${{ secrets.PROD_HOST }}/health; then
+              echo "✅ Health check passed on attempt $i"
+              exit 0
+            fi
+            echo "Attempt $i/10 failed — retrying in 15s..."
+            sleep 15
+          done
+          echo "❌ Health check failed after 10 attempts"
+          exit 1
 
       - name: Notify on success
         if: success()
-        run: echo "✅ Production deployment successful for ${{ github.ref }}"
+        run: |
+          echo "✅ Production deployment successful"
+          echo "   Tag: ${{ github.ref_name }}"
+          echo "   Commit: ${{ github.sha }}"
+          echo "   Actor: ${{ github.actor }}"
 
+      # FIX 6: rollback réel vers l'image précédente (pas juste un echo)
       - name: Rollback on failure
         if: failure()
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USER }}
           key: ${{ secrets.PROD_SSH_KEY }}
           script: |
+            echo "⚠️  Deployment failed — starting rollback..."
+            PREV=$(cat /tmp/fraudshield_rollback_image.txt 2>/dev/null || echo "")
+            if [[ -z "$PREV" || "$PREV" == "no-previous-image" ]]; then
+              echo "❌ No rollback target found"
+              exit 1
+            fi
             cd /opt/fraudshield
-            docker compose -f infrastructure/docker-compose.yml rollback || true
-            echo "⚠️  Deployment failed — rollback initiated"
+            # Repointe l'image backend vers l'ancienne version
+            sed -i "s|image: .*fraudshield-backend.*|image: $PREV|g" \
+              infrastructure/docker-compose.yml || true
+            docker compose -f infrastructure/docker-compose.yml up -d --no-build
+            echo "✅ Rollback complete to: $PREV"

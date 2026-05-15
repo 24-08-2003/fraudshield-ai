@@ -1,0 +1,12 @@
+# infrastructure/Dockerfile.mlflow
+FROM ghcr.io/mlflow/mlflow:v2.13.0
+
+# Installation du driver PostgreSQL pour permettre à MLflow de s'y connecter
+RUN pip install psycopg2-binary --quiet
+
+# Commande par défaut au lancement
+CMD mlflow server \
+    --backend-store-uri postgresql://fraudshield:${POSTGRES_PASSWORD}@postgres/mlflow \
+    --default-artifact-root /mlflow/artifacts \
+    --host 0.0.0.0 \
+    --port 5000
