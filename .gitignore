@@ -1,3 +1,10 @@
+# TypeScript build artifacts
+*.tsbuildinfo
+
+# Python virtual environment
+Lib/
+Scripts/
+
 # Python
 __pycache__/
 *.py[cod]
