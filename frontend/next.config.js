@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "standalone",
   reactStrictMode: true,
   output: "standalone",
   transpilePackages: ["three"],
@@ -18,3 +19,4 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
+
