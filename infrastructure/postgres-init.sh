@@ -17,3 +17,14 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
   END \$\$;
   GRANT ALL PRIVILEGES ON DATABASE airflow TO airflow;
 EOSQL
+
+# Grant schema-level permissions required by PostgreSQL 16+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "airflow" <<-EOSQL
+  GRANT ALL ON SCHEMA public TO airflow;
+  GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO airflow;
+  ALTER USER airflow CREATEDB;
+EOSQL
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "mlflow" <<-EOSQL
+  GRANT ALL ON SCHEMA public TO $POSTGRES_USER;
+EOSQL

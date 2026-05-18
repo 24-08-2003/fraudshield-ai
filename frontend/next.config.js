@@ -2,7 +2,6 @@
 const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
-  output: "standalone",
   transpilePackages: ["three"],
   async rewrites() {
     return [
