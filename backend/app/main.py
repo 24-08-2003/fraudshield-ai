@@ -12,6 +12,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from app.api.v1 import analytics, health, ingest, models, predict, ws
 from app.core.config import settings
 from app.core.database import Base, engine
+import app.models  # noqa: F401 — registers ORM models with Base.metadata
 
 logging.basicConfig(
     level=logging.INFO,
